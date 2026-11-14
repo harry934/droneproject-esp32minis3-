@@ -1,251 +1,253 @@
-# Drone project for ESP32 S3 Mini (XIAO)
+# Drone wiring guide for beginners
 
-Four motor learning controller on the **Seeed XIAO ESP32 S3**. **MicroPython** in Thonny: `main.py` + `gyroscope.py`. Reads **MPU6050** over I2C and a **throttle pot**, then drives four **PWM** motor outputs.
+This project uses an **ESP32 S3 Mini** (small computer board) to read a **gyro sensor** and tell **four motors** how fast to spin. You upload code with **Thonny**.
 
-**Confirm before wiring:** Board model (XIAO ESP32 S3, **Sense**, or **Plus**), ESC type, battery, and whether you use a separate flight controller. Pin tables below assume the **standard XIAO ESP32 S3**.
+**Phone control:** `main.py` starts WiFi **MiniDrone** (password `flyhigh123`). On your phone, join that network and open **http://192.168.4.1** for the joystick. Props off until bench tests pass.
 
-## Executive summary
+**You do not need a potentiometer.**
 
-| Area | Status |
-|------|--------|
-| Pin map vs XIAO silkscreen | Matches Seeed map for standard XIAO ESP32 S3 |
-| MPU6050 I2C | Implemented, address `0x68`, 400 kHz |
-| Motor outputs | 1 kHz `duty_u16` PWM, **not** standard 50 Hz ESC pulses |
-| Arming, disarm, failsafe | **Not implemented** |
-| Smartphone control | **Not implemented** (planned architecture below) |
-| Safe for props on | **No**. Educational mixer, ~50 Hz loop, no attitude PID |
+For a simple USB test without WiFi, run **`main_bench.py`** instead (motors stay at `THROTTLE_MANUAL = 0.0` unless you change it).
 
-Static Python check only (`py_compile`). **You must run hardware tests** on your board.
+---
 
-## Project files
+## Start here: what to do first
 
-| File | Purpose |
-|------|---------|
-| `main.py` | All pin numbers, motors, mixer, main loop |
-| `gyroscope.py` | MPU6050 driver and calibration |
-| `DOCUMENTATION.md` | Short how to run guide |
-| `WIRING_INSTRUCTIONS.md` | Step by step pin and wire connections |
-| `HARDWARE_BUILD.md` | Your BOM: bus bars, 2 ESCs, battery, capacitor, frame |
-| `TECHNICAL_REVIEW.md` | Same specification as this README (standalone copy) |
-| `THONNY_SETUP.md` | Flash MicroPython in Thonny |
+Follow these **phases in order**. Do not skip ahead. If a step fails, **stop** and fix it before the next phase.
 
-Upload `main.py` and `gyroscope.py` to the device. Change wiring only in the **pin block at the top of `main.py`**.
+| Phase | What you do | Battery plugged in? | Where to read |
+|-------|-------------|---------------------|---------------|
+| **0. Get ready** | Lay out all parts. Props **off**. Battery **unplugged**. Read **Rule number 1** below. | No | This table |
+| **1. Program the ESP32** | USB into the ESP32. Install MicroPython in Thonny. Upload **`main.py`**, **`mpu6050.py`**, **`gyroscope.py`**. Run once (errors are OK if gyro not wired yet). | No | [THONNY_SETUP.md](THONNY_SETUP.md) + **Step F** below |
+| **2. Wire gyro only** | Connect **only** MPU-6050 to ESP32 (3V3, GND, D4, D5). Run code again; check that the gyro is found (`0x68`). | No | **Step D** below |
+| **3. Build frame + motor power** | Mount motors and controllers on the frame. Wire **bus bars**, **capacitor**, thick wires from bars to **both** controllers. Connect **3 motor wires** from each motor to a controller. | No | **Steps A, B, C** below |
+| **4. Signal wires** | Thin jumpers: ESP32 **D1, D2, D3, D8** to each motor **signal** on the controllers. One **GND** wire from ESP32 to **signal GND** on both controllers (same ground as gyro). | No | **Step E** below |
+| **5. Bench test** | `THROTTLE_MANUAL = 0.0`. Plug battery **last**. Motors should stay quiet. Then try a tiny value (`0.15`) only with **no props**. | Yes (phase 5 only) | **Step G** below |
+| **6. Phone test** | Join WiFi `MiniDrone`, open `http://192.168.4.1`, throttle low, arm only with props off. | Yes (careful) | **Step H** below |
 
-## Pin table (XIAO silkscreen)
+**Your first action today:** do **Phase 0**, then **Phase 1** (USB + Thonny only). Do **not** connect the lithium battery until **Phase 5**.
 
-| Job | XIAO pin | GPIO | Signal | Voltage |
-|-----|----------|------|--------|---------|
-| Motor front left | D1 | 2 | PWM out | 3.3 V logic |
-| Motor front right | D2 | 3 | PWM out | 3.3 V logic |
-| Motor rear left | D3 | 4 | PWM out | 3.3 V logic |
-| Motor rear right | D8 | 7 | PWM out | 3.3 V logic |
-| Gyro SDA | D4 | 5 | I2C | 3.3 V |
-| Gyro SCL | D5 | 6 | I2C | 3.3 V |
-| Throttle pot wiper | D0 | 1 | ADC in | 0 to 3.3 V |
-| MPU6050 power | 3V3 | | Supply | 3.3 V |
-| Common ground | GND | | Ground | 0 V |
+**Quick path if you only have one hour:** Phase 0 → Phase 1 → Phase 2 (gyro + USB). Save motor wiring for the next session.
 
-**Unused on purpose:** D6, D7 (UART/USB), Boot (GPIO0), user LED (GPIO21).
+---
 
-## How to connect the pins
+## Parts you have
 
-Power **off** USB and battery before wiring. All **GND** wires must meet at the XIAO **GND**. Use **3V3** only for the MPU6050 (never 5 V on the sensor).
+1. **ESP32 S3 Mini** … the brain (runs the program)  
+2. **MPU-6050** … the gyro (feels tilt and spin)  
+3. **4 motors** … spin the propellers  
+4. **2 motor controllers** … boards that send power to the motors  
+5. **3 bus bars** … metal strips that split battery power to both controllers  
+6. **Lithium battery** … powers the motors only  
+7. **Capacitor** … small part that smooths battery power (goes on + and − near the controllers)  
+8. **Frame** … holds everything  
+9. **Female to male jumper wires** … plastic wires with different ends  
+10. **Female to female jumper wires** … both ends are sockets  
 
-### MPU6050
+---
 
-| XIAO | MPU6050 pin |
-|------|-------------|
-| 3V3 | VCC |
-| GND | GND |
-| D4 | SDA |
-| D5 | SCL |
+## Words that help
 
-### Throttle potentiometer (3 legs)
+| Word | Simple meaning |
+|------|----------------|
+| **GND** / ground | The **minus** side of power. All black wires meet here. |
+| **3V3** | **3.3 volts**. Safe power for the gyro and the small board. **Not** the big battery. |
+| **Signal wire** | Thin wire that says “how fast” to spin. **Not** the thick battery wire. |
+| **Motor controller** | Box that takes battery power and a signal, then spins a motor. |
+| **Bus bar** | Thick metal rail so one battery wire can feed many places. |
 
-| XIAO | Pot leg |
-|------|---------|
-| 3V3 | One outer leg |
-| GND | Other outer leg |
-| D0 | Center leg (wiper) |
+---
 
-If throttle is reversed, swap the two outer legs only.
+## Rule number 1 (read twice)
 
-### Four motors (ESC signal)
+There are **two separate power systems**:
 
-Quad viewed from above, front forward:
+| What | Powered by |
+|------|------------|
+| ESP32 board + gyro sensor | **USB cable** into the ESP32 (when learning) |
+| Motors | **Lithium battery** only |
 
-| Position | XIAO signal pin |
-|----------|-----------------|
-| Front left | D1 |
-| Front right | D2 |
-| Rear left | D3 |
-| Rear right | D8 |
+**Never** connect the big battery to the ESP32 board.  
+**Never** use thin jumper wires for battery power (they will melt).
 
-For **each** ESC: **signal** wire to the matching D pin; **ESC GND** to **XIAO GND**. Battery **+** and **−** go to the ESC power inputs only, not to the XIAO.
+---
 
-**Bench test:** Pin → **470 Ω resistor** → LED anode → LED cathode → **GND** (same D pins as above).
+## The ESP32 board: which pins to use
 
-**Full checklist, assembly order, and Sense/Plus notes:** [WIRING_INSTRUCTIONS.md](WIRING_INSTRUCTIONS.md).
+Look at the **side of your ESP32 S3 Mini**. Find these printed names:
 
-**Restrictions**
+| Name on board | Connect to |
+|---------------|------------|
+| **3V3** | Gyro **VCC** (power for sensor) |
+| **GND** | Gyro **GND** + motor controller **signal ground** |
+| **D4** | Gyro **SDA** |
+| **D5** | Gyro **SCL** |
+| **D1** | **Front left** motor **signal** |
+| **D2** | **Front right** motor **signal** |
+| **D3** | **Rear left** motor **signal** |
+| **D8** | **Rear right** motor **signal** |
 
-1. **GPIO3 on D2 (motor FR):** ESP32 S3 strapping at reset. If boot fails, move FR to **D9** (GPIO8).
-2. **XIAO Sense:** D8 may conflict with on board SD clock. Remap rear right motor off D8.
-3. **XIAO Plus:** Different pinout. Reverify against [Seeed wiki](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/).
-4. **ESC signals:** Many ESCs want **50 Hz, 1000 to 2000 µs** and sometimes **5 V** tolerant inputs. XIAO GPIO is **3.3 V**. Check your ESC datasheet.
-5. **Motor power:** Battery and PDB only. **Never** power motors from the XIAO 3.3 V pin.
+**Front** = the direction you want the drone to fly forward when you build it.
 
-## Wiring (logical)
+If your board does not show D1, D2, etc., use the instruction sheet that came in the box.
+
+---
+
+## Build step by step (do in this order)
+
+### Step A: Get the frame ready
+
+1. Screw the **4 motors** onto the arms.  
+2. **Do not** put propellers on yet.  
+3. Decide which arm is **front left**, **front right**, **rear left**, **rear right**.  
+4. Write it on paper. You will need it later.
+
+### Step B: Battery power (thick wires only)
+
+**Battery unplugged the whole time while you wire this part.**
+
+1. Connect battery **minus (−)** to **bus bar 2** (negative bar).  
+2. Connect battery **plus (+)** to **bus bar 1** (positive bar).  
+3. From bar **+**, run thick wire to **power +** on **motor controller 1** and **motor controller 2**.  
+4. From bar **−**, run thick wire to **power −** on **both** controllers.  
+5. Put the **capacitor** across bar **+** and bar **−** close to the controllers.  
+   - Long leg or **+** marked side → positive bar.  
+   - Striped or short leg → negative bar.  
+6. Use **bus bar 3** the way your kit says, or connect extra **ground** wires there so everything shares the same minus.
+
+### Step C: Motors to controllers (thick motor wires)
+
+Each motor usually has **3 thick colored wires**. Plug them into **one motor output** on a controller (labels like M1, M2, or A B C).
+
+1. Connect **front left** motor to a free channel. Write down: “FL = controller __ channel __”.  
+2. Do the same for **FR**, **RL**, **RR**.
+
+**Still no battery plugged in** if you are not sure the wires are correct.
+
+### Step D: Gyro to ESP32 (thin jumpers)
+
+The gyro is a small board with 4 pins: **VCC, GND, SDA, SCL**.
+
+| ESP32 pin | Gyro pin |
+|-----------|----------|
+| **3V3** | **VCC** |
+| **GND** | **GND** |
+| **D4** | **SDA** |
+| **D5** | **SCL** |
+
+**Which jumper?**
+
+- Gyro has **metal pins sticking up** → use **female to female** on those pins.  
+- ESP32 holes may need **female to male** (pin into the board, socket on the wire).
+
+Tape the gyro flat in the **middle of the frame** so it moves with the drone.
+
+### Step E: ESP32 to motor controllers (thin signal wires)
+
+These wires only **tell** the speed. They do **not** carry motor battery power.
+
+For **each** motor, find the small **signal** pin on the controller (may say **S**, **PWM**, or **SIG**):
+
+| Motor corner | ESP32 pin | Goes to |
+|--------------|-----------|---------|
+| Front left | **D1** | That motor’s **signal** pin |
+| Front right | **D2** | Signal |
+| Rear left | **D3** | Signal |
+| Rear right | **D8** | Signal |
+
+**One black wire:** ESP32 **GND** → **signal GND** on **both** motor controllers (and it should already meet gyro **GND**).
+
+All grounds must meet: battery minus, controller power minus, controller signal minus, ESP32 GND, gyro GND.
 
 ```
-              MPU6050
-    3V3 ---- VCC
-    GND ---- GND
-    D4  ---- SDA
-    D5  ---- SCL
+        BIG BATTERY (motors only)
+              |
+         bus bars + cap
+              |
+    motor controller 1 ---- motor controller 2
+         |    |                  |    |
+       4 motors on the frame
 
-              XIAO ESP32 S3
-    3V3 ---- pot top
-    D0  ---- pot wiper
-    GND ---- pot bottom
-    D1  ---- ESC or LED front left signal
-    D2  ---- ESC or LED front right signal
-    D3  ---- ESC or LED rear left signal
-    D8  ---- ESC or LED rear right signal
-    GND ---- ESC signal ground (common with XIAO)
+    SMALL WIRES (brain talks to controllers)
+    ESP32 D1 D2 D3 D8  --->  signal pins
+    ESP32 GND         --->  signal GND on both controllers
 
-    Motor battery ---- ESC power only (not XIAO)
+    SMALL WIRES (brain reads gyro)
+    ESP32 3V3 GND D4 D5  --->  MPU-6050
 ```
 
-## How components talk to the ESP32
+### Step F: Put code on the ESP32 (before battery test)
 
-### MPU6050
+1. Install **MicroPython** and **Thonny** (see `THONNY_SETUP.md`).  
+2. Copy these files to the board: **`main.py`**, **`mpu6050.py`**, **`gyroscope.py`**.  
+3. Run `main.py`.  
+4. In the Shell you should see **I2C scan** with **`0x68`**, then WiFi **MiniDrone** and an IP like **192.168.4.1**.  
+5. If scan is **`[]`**, fix **Step D** wiring before arming anything.
 
-| Item | Detail |
-|------|--------|
-| Protocol | I2C, 400 kHz, `I2C(0)` |
-| Pins | SDA GPIO5 (D4), SCL GPIO6 (D5) |
-| Address | `0x68` (AD0 low) |
-| Library | `gyroscope.py` only (no pip packages) |
-| Update rate | ~50 Hz in main loop |
-| Failure today | Caught at init (WHO_AM_I). No runtime watchdog |
+Optional: upload **`main_bench.py`** for a no-WiFi gyro + motor printout test.
 
-### Throttle potentiometer
+### Step G: First battery test (careful)
 
-| Item | Detail |
-|------|--------|
-| Protocol | ADC on GPIO1 (D0) |
-| Update rate | ~50 Hz |
+1. Propellers **still off**.  
+2. `THROTTLE_MANUAL` is **0.0**.  
+3. Plug the battery in.  
+4. Motors should **not** spin hard.  
+5. If something smells hot or buzzes wrong, **unplug the battery right away**.
 
-### Motors (four outputs)
+To try a **very small** spin later (still no props): use **`main_bench.py`** with `THROTTLE_MANUAL = 0.15`, then set back to `0.0`.
 
-| Item | Detail |
-|------|--------|
-| Protocol today | `machine.PWM` at 1000 Hz, duty 0 to 65535 |
-| Typical ESC need | 50 Hz servo PWM; **code change required** for real ESCs |
-| Mixer layout | Quad X: FL, FR, RL, RR |
+### Step H: Control from your phone
 
-## What the code does now
+1. Props **off**. Battery only when you are ready for a bench test.  
+2. Reset or run `main.py` on the ESP32. Wait for **Join WiFi 'MiniDrone'** in the Shell.  
+3. On the phone: **Settings → Wi‑Fi → MiniDrone**, password **`flyhigh123`**.  
+4. Open a browser: **http://192.168.4.1**  
+5. Leave throttle **down**. Tap **Arm** only when the drone is still and gyro calibration finished.  
+6. Raise throttle slowly. If the phone loses WiFi for more than ~0.5 s, motors **cut** (failsafe).
 
-1. Calibrate gyro ~2 s (**hold still**).
-2. Each loop (~50 Hz): read gyro, read pot, mix, set four PWM outputs.
-3. Stop in Thonny with keyboard interrupt turns motors off.
+---
 
-**Gaps:** No arming switch, no phone link, no disconnect failsafe, no PID stabilization.
+## Mistakes beginners often make
 
-## Code reliability notes
+| Do not do this | Why |
+|----------------|-----|
+| Battery + to ESP32 3V3 | Breaks the board |
+| Battery through jumper wires | Fire risk |
+| Gyro VCC to battery or 5 V | Breaks the sensor |
+| Thick motor power wire to D1, D2, D3, D8 | Those pins are **signals only** |
 
-| Part | Risk |
-|------|------|
-| `mix_motors()` | Gyro feedforward only; not a flight grade PID |
-| Pot | No smoothing; noisy pot jitters motors |
-| After calibration | Motors can spin if pot is above deadband |
-| ESC waveform | Wrong shape for most brushless ESCs until updated |
+---
 
-**Hardware tests still required:** MicroPython on your chip, I2C scan `0x68`, PWM on each pin, full bench run 5+ minutes.
+## Before you fly (later)
 
-## Smartphone control (planned, not coded)
+This firmware includes **phone control**, **arming**, and **failsafe**, but it is still **learning** code. Props stay off until:
 
-**Recommended first version**
+1. I2C scan shows **0x68** every boot.  
+2. Your **red dual motor boards** are wired (PWM to D1–D3, D8; direction pins set; battery on VM only).  
+3. Bench tests with low throttle show sane motor direction.
 
-| Item | Choice |
-|------|--------|
-| Radio | WiFi 2.4 GHz on ESP32 S3 |
-| Phone UI | Web page in browser (Android or iOS) |
-| Network | SoftAP (phone joins drone) or home WiFi |
-| Commands | WebSocket or HTTP JSON, 20 to 50 Hz |
-| Telemetry | Gyro, armed flag, RSSI, battery when wired |
+More detail: [TECHNICAL_REVIEW.md](TECHNICAL_REVIEW.md).
 
-**Command flow (target)**
+---
 
-1. Phone sends throttle, roll, pitch, yaw, arm flag.
-2. ESP32 validates ranges and arm rules (gyro OK, throttle low).
-3. Mixer drives four motors.
-4. If no valid packet for **200 ms**, **disarm** and idle motors.
+## Files in this folder
 
-**On disconnect or bad data:** disarm within 200 ms.
+| File | What it is |
+|------|------------|
+| `main.py` | Phone WiFi + flight control |
+| `mpu6050.py` | Thin API for `main.py` (`read()`, `calibrate_gyro()`) |
+| `gyroscope.py` | Low-level MPU-6050 driver |
+| `main_bench.py` | Optional simple test without WiFi |
+| `THONNY_SETUP.md` | How to install MicroPython |
+| `COMPONENTS_WIRING_GUIDE.md` | Same wiring ideas as this README |
 
-**ESP32 vs flight controller:** This repo runs one loop on the ESP32 (OK for bench). For props on flight, add full PID plus arming plus failsafe on ESP32, **or** send RC to a commercial flight controller.
+---
 
-## Safety checklist
+## If you get stuck
 
-| Hazard | Current | Should add |
-|--------|---------|------------|
-| Wrong wiring | Pin table in `main.py` | Verify before solder |
-| MPU on 5 V | | Use 3.3 V only |
-| I2C fault | Stop at init | Disarm and no spin at runtime |
-| Surprise motor start | Deadband only | Arm command, motors off at boot |
-| Phone lost | N/A | Timeout disarm |
-| Software hang | None | Watchdog |
-| Props on too early | | Follow test stages below |
+Send photos of:
 
-**Proposed arming:** Power on motors off → gyro cal → throttle zero → explicit arm → disarm on fault, timeout, or user command.
+1. Both motor controllers (so we can read the labels).  
+2. Your battery label.  
+3. One motor (show if it has 2 or 3 wires).  
 
-## Staged testing
-
-| Stage | What to do | Pass | Stop if |
-|-------|------------|------|---------|
-| 0 | Confirm board model | Matches this table | Wrong pins |
-| 1 | Flash MicroPython, REPL | `import machine` works | Cannot flash |
-| 2 | I2C scan | `0x68` seen | No MPU |
-| 3 | Gyro only | ~0 °/s still, ~1 g on Z | Bad WHO_AM_I |
-| 4 | Pot ADC | Smooth 0 to 100% | Floating pin |
-| 5 | One motor pin + LED | PWM changes output | Wrong GPIO |
-| 6 | Four outputs, **no props**, no ESC battery | All independent | Overheat |
-| 7 | Full `main.py` 5 min bench | Stable serial | Reset or heat |
-| 8 | WiFi phone (when built) | Timeout disarm works | Motors spin on loss |
-| 9 | ESC 50 Hz code (when built) | Throttle follows | Wrong pulse |
-| 10 | Props on, tethered only | Controlled hover | Oscillation or link loss |
-
-## Run in Thonny
-
-1. Install **MicroPython** for ESP32 S3 on the XIAO.
-2. Save `main.py` and `gyroscope.py` to the board.
-3. Run `main.py` (F5). Keep the board still during gyro calibration.
-
-Details: `THONNY_SETUP.md`.
-
-## Known limitations
-
-1. Not flight certified.
-2. ESC timing mismatch until servo style PWM is added.
-3. GPIO3 strapping on D2 motor FR.
-4. Sense board SD conflict on D8 possible.
-5. No battery ADC, baro, or magnetometer.
-6. Smartphone control not in firmware yet.
-
-## Information we still need from you
-
-1. Exact board photo or product link.
-2. ESC model and required signal (PWM µs, DSHOT, etc.).
-3. Battery voltage and connector.
-4. Phone control: WiFi web, BLE, or RC transmitter.
-5. Separate flight controller yes or no.
-
-## References
-
-[Seeed XIAO ESP32 S3 pin map](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/)
-
-[ESP32 S3 boot and strapping](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/advanced-topics/boot-mode-selection.html)
-
-[MPU6050](https://invensense.tdk.com/products/motion-tracking/6-axis/mpu-6050/)
+We can then tell you **exactly** which screw or pin is which.
