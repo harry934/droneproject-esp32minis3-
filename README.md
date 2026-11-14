@@ -19,7 +19,7 @@ Follow these **phases in order**. Do not skip ahead. If a step fails, **stop** a
 | **0. Get ready** | Lay out all parts. Props **off**. Battery **unplugged**. Read **Rule number 1** below. | No | This table |
 | **1. Program the ESP32** | USB into the ESP32. Install MicroPython in Thonny. Upload **`main.py`**, **`mpu6050.py`**, **`gyroscope.py`**. Run once (errors are OK if gyro not wired yet). | No | [THONNY_SETUP.md](THONNY_SETUP.md) + **Step F** below |
 | **2. Wire gyro only** | Connect **only** MPU-6050 to ESP32 (3V3, GND, D4, D5). Run code again; check that the gyro is found (`0x68`). | No | **Step D** below |
-| **3. Build frame + motor power** | Mount motors and controllers on the frame. Wire **bus bars**, **capacitor**, thick wires from bars to **both** controllers. Connect **3 motor wires** from each motor to a controller. | No | **Steps A, B, C** below |
+| **3. Build frame + motor power** | Mount motors and red driver boards. Wire **bus bars**, **capacitor**, thick wires to both boards. Connect each motor’s **red + blue** wires to **AO/BO** outputs (Step C). | No | **Steps A, B, C** below |
 | **4. Signal wires** | Thin jumpers: ESP32 **D1, D2, D3, D8** to each motor **signal** on the controllers. One **GND** wire from ESP32 to **signal GND** on both controllers (same ground as gyro). | No | **Step E** below |
 | **5. Bench test** | `THROTTLE_MANUAL = 0.0`. Plug battery **last**. Motors should stay quiet. Then try a tiny value (`0.15`) only with **no props**. | Yes (phase 5 only) | **Step G** below |
 | **6. Phone test** | Join WiFi `MiniDrone`, open `http://192.168.4.1`, throttle low, arm only with props off. | Yes (careful) | **Step H** below |
@@ -114,14 +114,33 @@ If your board does not show D1, D2, etc., use the instruction sheet that came in
    - Striped or short leg → negative bar.  
 6. Use **bus bar 3** the way your kit says, or connect extra **ground** wires there so everything shares the same minus.
 
-### Step C: Motors to controllers (thick motor wires)
+### Step C: Motors to the red driver boards (blue + red wire motors)
 
-Each motor usually has **3 thick colored wires**. Plug them into **one motor output** on a controller (labels like M1, M2, or A B C).
+Your motors are **small brushed DC motors**: only **two thin wires** (often **red** and **blue**). That matches the **red dual motor driver** boards (H-bridge), **not** a 3-wire brushless ESC.
 
-1. Connect **front left** motor to a free channel. Write down: “FL = controller __ channel __”.  
-2. Do the same for **FR**, **RL**, **RR**.
+**Each red board runs 2 motors.** You have **2 boards** → **4 motors** total.
 
-**Still no battery plugged in** if you are not sure the wires are correct.
+On the red board, motor wires screw or solder into **two outputs per channel**:
+
+| Motor channel | Motor wires go here (labels vary) |
+|---------------|-----------------------------------|
+| Motor A | **AO1** and **AO2** (or OUTA1 / OUTA2) |
+| Motor B | **BO1** and **BO2** (or OUTB1 / OUTB2) |
+
+**Red vs blue:** On cheap motors the colors are not always “plus and minus.” Pick one wire to **AO1** and one to **AO2**. If the motor spins **backward** later, **swap** the two motor wires on that output only.
+
+**Suggested layout (write this on paper):**
+
+| Corner | Red board | Channel | Motor wires |
+|--------|-----------|---------|-------------|
+| Front left (FL) | Board 1 | A (AO1/AO2) | red + blue |
+| Front right (FR) | Board 1 | B (BO1/BO2) | red + blue |
+| Rear left (RL) | Board 2 | A | red + blue |
+| Rear right (RR) | Board 2 | B | red + blue |
+
+**Do not** plug motor red/blue wires into the **battery bus bars**. Motor power comes **through the red board** only (from **VM** / motor power pins on the board).
+
+**Still no battery** until Step B power and Step E signals are done.
 
 ### Step D: Gyro to ESP32 (thin jumpers)
 
@@ -141,20 +160,34 @@ The gyro is a small board with 4 pins: **VCC, GND, SDA, SCL**.
 
 Tape the gyro flat in the **middle of the frame** so it moves with the drone.
 
-### Step E: ESP32 to motor controllers (thin signal wires)
+### Step E: ESP32 to the red driver boards (speed + direction)
 
-These wires only **tell** the speed. They do **not** carry motor battery power.
+These are **thin jumper wires**. They tell **how fast** to spin; they do **not** power the motors.
 
-For **each** motor, find the small **signal** pin on the controller (may say **S**, **PWM**, or **SIG**):
+**On each red board you need:**
 
-| Motor corner | ESP32 pin | Goes to |
-|--------------|-----------|---------|
-| Front left | **D1** | That motor’s **signal** pin |
-| Front right | **D2** | Signal |
-| Rear left | **D3** | Signal |
-| Rear right | **D8** | Signal |
+1. **Logic power:** **VCC** (or **+5V** logic pin) → ESP32 **3V3**.  
+2. **Standby (if the pin exists):** **STBY** → **3V3** (board must be enabled).  
+3. **Common ground:** board **GND** → ESP32 **GND** (same ground as MPU and battery minus on the board).  
+4. **Speed (PWM)** — one wire per motor:
 
-**One black wire:** ESP32 **GND** → **signal GND** on **both** motor controllers (and it should already meet gyro **GND**).
+| Motor | ESP32 | Red board pin |
+|-------|-------|----------------|
+| Front left | **D1** | **PWMA** (motor A speed) |
+| Front right | **D2** | **PWMB** (motor B speed) |
+| Rear left | **D3** | **PWMA** on **board 2** |
+| Rear right | **D8** | **PWMB** on **board 2** |
+
+5. **Direction (required for H-bridge):** For each channel, set **one direction** and leave it:
+
+| Channel | Wire **AIN1** (or **BIN1** for B) | Wire **AIN2** (or **BIN2** for B) |
+|---------|-----------------------------------|-----------------------------------|
+| Spin “forward” for props | **3V3** | **GND** |
+| If motor runs backward later | swap **AIN1** and **AIN2** (or swap motor wires in Step C) |
+
+Repeat **AIN1/AIN2** for motor A and **BIN1/BIN2** for motor B on **both** red boards.
+
+**Bus bar 3:** Use it as an extra **ground** rail if helpful — tie **battery −**, both board **GND** pins, and ESP32 **GND** to the same minus so everything shares one ground.
 
 All grounds must meet: battery minus, controller power minus, controller signal minus, ESP32 GND, gyro GND.
 
