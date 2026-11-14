@@ -2,7 +2,7 @@
 
 ## What this project is
 
-A **4-motor drone controller** on the **Seeed XIAO ESP32-S3** (ESP32-S3 Mini). It reads a **gyroscope (MPU6050)** and a **throttle potentiometer**, then sets **four motor outputs** (PWM). In Wokwi, motors are shown as **LEDs**; on a real quad you would connect **ESCs** to the same GPIOs.
+A **4-motor drone controller** on the **Seeed XIAO ESP32-S3** (ESP32-S3 Mini). It reads a **gyroscope (MPU6050)** and a **throttle potentiometer**, then sets **four motor outputs** (PWM) for ESCs or test LEDs.
 
 ---
 
@@ -35,17 +35,6 @@ MPU6050: **3V3**, **GND**, **SDA → D4**, **SCL → D5**.
 
 ---
 
-## Wokwi (browser simulation)
-
-| File | Purpose |
-|------|---------|
-| **`diagram.json`** | Circuit: XIAO board, 4 LEDs as motors, MPU6050, pot. |
-| **`sketch.ino`** | Same logic in **Arduino C++** (if you simulate in Wokwi instead of Thonny). |
-
-Pins in `sketch.ino` match `main.py`.
-
----
-
 ## What the program does each loop (~50 Hz)
 
 1. Read **gyro** (how fast the board is rotating).
@@ -64,18 +53,6 @@ On startup, the gyro is **calibrated for ~2 seconds** — keep the board still.
 3. Run `main.py` (F5).
 
 See `THONNY_SETUP.md` for flash and troubleshooting.
-
----
-
-## Files you can ignore (old split)
-
-These were merged into **`main.py`** + **`gyroscope.py`**:
-
-- `config.py`
-- `mpu6050.py`
-- `motors.py`
-
-You may delete them from the board if you already uploaded them.
 
 ---
 
