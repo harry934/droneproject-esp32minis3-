@@ -57,6 +57,90 @@ Follow these **phases in order**. Do not skip ahead. If a step fails, **stop** a
 
 ---
 
+## Red motor driver: what the pin names mean
+
+Your **red board** is a **dual motor driver**. It has **two channels** — **A** and **B** — so **one board** can spin **two motors**. Labels on cheap boards differ slightly; this table is what **AO1**, **PWMA**, etc. usually mean.
+
+### Power pins (thick battery wires)
+
+| Name on board | Stands for | Connect to |
+|---------------|------------|------------|
+| **VM** | **V**oltage **M**otor (motor power in) | Bus bar **+** (battery plus, through thick wire) |
+| **GND** | **G**rou**n** **D** (minus / return) | Bus bar **−** (battery minus, thick wire) |
+| **VCC** | Logic power for the chip | ESP32 **3V3** (thin wire — **not** the battery) |
+
+Some boards print **+** / **−** next to VM/GND instead of the letters **VM** / **GND**.
+
+| Also seen as | Same as |
+|--------------|---------|
+| **VIN**, **M+**, **VMS** | Motor power **+** → bar **+** |
+| **M−**, **PGND** | Motor power **−** → bar **−** |
+
+### Enable pin (if your board has it)
+
+| Name | Meaning | Connect to |
+|------|---------|------------|
+| **STBY** | **St**and**by** — chip off until this is high | **3V3** on ESP32 (always “on” while flying) |
+
+If there is **no** STBY pin, ignore this row.
+
+### Motor outputs (your motor’s red + blue wires)
+
+These are the **only** pins that get the motor’s two wires. The driver pushes battery power out here to spin the motor.
+
+| Name | Meaning | What to hook up |
+|------|---------|-----------------|
+| **AO1** | **A** channel **o**utput terminal **1** | One wire from motor A (red or blue) |
+| **AO2** | **A** channel **o**utput terminal **2** | The other wire from motor A |
+| **BO1** | **B** channel **o**utput terminal **1** | One wire from motor B |
+| **BO2** | **B** channel **o**utput terminal **2** | The other wire from motor B |
+
+| Also seen as | Same as |
+|--------------|---------|
+| **OUTA1** / **OUTA2** | **AO1** / **AO2** |
+| **OUTB1** / **OUTB2** | **BO1** / **BO2** |
+| **M1A** / **M1B** | Often motor A’s two outputs |
+
+**AO1 vs AO2:** Neither is “plus” or “minus” by itself. They are the two ends of the motor. Swap AO1 ↔ AO2 if the prop spins the wrong way.
+
+### Speed inputs (from ESP32 — one per motor)
+
+| Name | Meaning | Connect to |
+|------|---------|------------|
+| **PWMA** | **P**ulse **W**idth **M**odulation, channel **A** (speed command for motor A) | ESP32 **D1** or **D3** (see Step E table) |
+| **PWMB** | Speed command for channel **B** | ESP32 **D2** or **D8** |
+
+**PWM** = the ESP32 sends a fast on/off pattern; more “on” time = faster spin. Your code uses pins **D1, D2, D3, D8** for the four motors.
+
+### Direction inputs (set spin direction once with jumpers)
+
+The driver needs to know **which way** current flows through the motor. You wire these **once** to **3V3** and **GND** (not to the ESP32, unless you add fancy code later).
+
+| Name | Meaning | Typical hookup for one fixed direction |
+|------|---------|----------------------------------------|
+| **AIN1** | **A** channel **in**put **1** (direction bit 1) | **3V3** |
+| **AIN2** | **A** channel **in**put **2** (direction bit 2) | **GND** |
+| **BIN1** | **B** channel direction bit 1 | **3V3** |
+| **BIN2** | **B** channel direction bit 2 | **GND** |
+
+| AIN1 | AIN2 | Motor A tends to… |
+|------|------|-------------------|
+| 3V3 | GND | Spin one way (pick this first) |
+| GND | 3V3 | Spin the opposite way |
+
+Same table applies to **BIN1** / **BIN2** for motor B. If only one motor is backward, swap **AIN1 ↔ AIN2** for that channel, or swap **AO1 ↔ AO2**.
+
+### Gyro (MPU-6050) pin names (for Step D)
+
+| Name | Meaning |
+|------|---------|
+| **VCC** | Sensor **V**oltage supply → **3V3** |
+| **GND** | Ground → **GND** |
+| **SDA** | **S**erial **D**ata (I2C) → **D4** |
+| **SCL** | **S**erial **C**lock (I2C) → **D5** |
+
+---
+
 ## Rule number 1 (read twice)
 
 There are **two separate power systems**:
@@ -116,16 +200,18 @@ If your board does not show D1, D2, etc., use the instruction sheet that came in
 
 ### Step C: Motors to the red driver boards (blue + red wire motors)
 
+*(Pin names **AO1**, **BO2**, **VM**, etc. are explained in the section **Red motor driver: what the pin names mean** above.)*
+
 Your motors are **small brushed DC motors**: only **two thin wires** (often **red** and **blue**). That matches the **red dual motor driver** boards (H-bridge), **not** a 3-wire brushless ESC.
 
 **Each red board runs 2 motors.** You have **2 boards** → **4 motors** total.
 
-On the red board, motor wires screw or solder into **two outputs per channel**:
+On the red board, motor wires screw or solder into **two outputs per channel** (motor **out**puts, not power from the battery):
 
-| Motor channel | Motor wires go here (labels vary) |
-|---------------|-----------------------------------|
-| Motor A | **AO1** and **AO2** (or OUTA1 / OUTA2) |
-| Motor B | **BO1** and **BO2** (or OUTB1 / OUTB2) |
+| Motor channel | Motor wires go here | Plain English |
+|---------------|---------------------|---------------|
+| Motor A | **AO1** and **AO2** | **A** motor, **out**put screw 1 and 2 |
+| Motor B | **BO1** and **BO2** | **B** motor, **out**put screw 1 and 2 |
 
 **Red vs blue:** On cheap motors the colors are not always “plus and minus.” Pick one wire to **AO1** and one to **AO2**. If the motor spins **backward** later, **swap** the two motor wires on that output only.
 
@@ -138,7 +224,7 @@ On the red board, motor wires screw or solder into **two outputs per channel**:
 | Rear left (RL) | Board 2 | A | red + blue |
 | Rear right (RR) | Board 2 | B | red + blue |
 
-**Do not** plug motor red/blue wires into the **battery bus bars**. Motor power comes **through the red board** only (from **VM** / motor power pins on the board).
+**Do not** plug motor red/blue wires into the **battery bus bars**. Motor power comes **through the red board** only: battery → **VM** (+) and **GND** (−) on the board → then out to the motor via **AO1/AO2** or **BO1/BO2**.
 
 **Still no battery** until Step B power and Step E signals are done.
 
@@ -162,30 +248,34 @@ Tape the gyro flat in the **middle of the frame** so it moves with the drone.
 
 ### Step E: ESP32 to the red driver boards (speed + direction)
 
+*(See **Red motor driver: what the pin names mean** for **PWMA**, **AIN1**, **STBY**, etc.)*
+
 These are **thin jumper wires**. They tell **how fast** to spin; they do **not** power the motors.
 
 **On each red board you need:**
 
-1. **Logic power:** **VCC** (or **+5V** logic pin) → ESP32 **3V3**.  
-2. **Standby (if the pin exists):** **STBY** → **3V3** (board must be enabled).  
-3. **Common ground:** board **GND** → ESP32 **GND** (same ground as MPU and battery minus on the board).  
-4. **Speed (PWM)** — one wire per motor:
+1. **VCC** — chip logic power → ESP32 **3V3** (small power for the driver IC).  
+2. **STBY** (if present) — **standby** enable → **3V3** so the driver is not asleep.  
+3. **GND** — logic ground → ESP32 **GND** (must match gyro GND and motor **GND** on the same board).  
+4. **Speed pins** — **PWMA** / **PWMB** (**P**ulse **W**idth **M**odulation = speed knob from code):
 
-| Motor | ESP32 | Red board pin |
-|-------|-------|----------------|
-| Front left | **D1** | **PWMA** (motor A speed) |
-| Front right | **D2** | **PWMB** (motor B speed) |
-| Rear left | **D3** | **PWMA** on **board 2** |
-| Rear right | **D8** | **PWMB** on **board 2** |
+| Motor | ESP32 | Red board pin | Meaning |
+|-------|-------|---------------|---------|
+| Front left | **D1** | **PWMA** on board 1 | Speed for channel **A**, motor FL |
+| Front right | **D2** | **PWMB** on board 1 | Speed for channel **B**, motor FR |
+| Rear left | **D3** | **PWMA** on board 2 | Speed for channel **A**, motor RL |
+| Rear right | **D8** | **PWMB** on board 2 | Speed for channel **B**, motor RR |
 
-5. **Direction (required for H-bridge):** For each channel, set **one direction** and leave it:
+5. **Direction pins** — **AIN1/AIN2** (channel A) and **BIN1/BIN2** (channel B): digital **in**puts that pick spin direction:
 
-| Channel | Wire **AIN1** (or **BIN1** for B) | Wire **AIN2** (or **BIN2** for B) |
-|---------|-----------------------------------|-----------------------------------|
-| Spin “forward” for props | **3V3** | **GND** |
-| If motor runs backward later | swap **AIN1** and **AIN2** (or swap motor wires in Step C) |
+| Pins | Hook to | Meaning |
+|------|---------|---------|
+| **AIN1** | **3V3** | Direction input 1 for motor A |
+| **AIN2** | **GND** | Direction input 2 for motor A |
+| **BIN1** | **3V3** | Direction input 1 for motor B |
+| **BIN2** | **GND** | Direction input 2 for motor B |
 
-Repeat **AIN1/AIN2** for motor A and **BIN1/BIN2** for motor B on **both** red boards.
+If a motor spins backward, swap **AIN1 ↔ AIN2** for that channel only, or swap **AO1 ↔ AO2** on the motor wires.
 
 **Bus bar 3:** Use it as an extra **ground** rail if helpful — tie **battery −**, both board **GND** pins, and ESP32 **GND** to the same minus so everything shares one ground.
 
