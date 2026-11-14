@@ -25,6 +25,7 @@ Static Python check only (`py_compile`). **You must run hardware tests** on your
 | `gyroscope.py` | MPU6050 driver and calibration |
 | `DOCUMENTATION.md` | Short how to run guide |
 | `WIRING_INSTRUCTIONS.md` | Step by step pin and wire connections |
+| `HARDWARE_BUILD.md` | Your BOM: bus bars, 2 ESCs, battery, capacitor, frame |
 | `TECHNICAL_REVIEW.md` | Same specification as this README (standalone copy) |
 | `THONNY_SETUP.md` | Flash MicroPython in Thonny |
 

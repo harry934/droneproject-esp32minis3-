@@ -4,6 +4,8 @@ For **pin verification, safety, testing stages, and smartphone architecture**, r
 
 For **step by step soldering and wire connections**, read **[WIRING_INSTRUCTIONS.md](WIRING_INSTRUCTIONS.md)**.
 
+For **your parts** (2 ESCs, 3 bus bars, LiPo, capacitor, frame, jumpers), read **[HARDWARE_BUILD.md](HARDWARE_BUILD.md)**.
+
 ## What this project is
 
 A **4 motor drone controller** on the **Seeed XIAO ESP32 S3**. It reads **MPU6050** and a **throttle potentiometer**, then sets **four motor outputs** (PWM) for ESCs or test LEDs.
