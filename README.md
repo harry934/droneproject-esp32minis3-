@@ -101,7 +101,7 @@ These are the **only** pins that get the motor’s two wires. The driver pushes 
 | **OUTB1** / **OUTB2** | **BO1** / **BO2** |
 | **M1A** / **M1B** | Often motor A’s two outputs |
 
-**AO1 vs AO2:** Neither is “plus” or “minus” by itself. They are the two ends of the motor. Swap AO1 ↔ AO2 if the prop spins the wrong way.
+**AO1 vs AO2:** They are the two motor output screws. In this project: motor **red → AO1**, motor **blue → AO2** (and **red → BO1**, **blue → BO2** on channel B). Swap red ↔ blue on those two screws only if that motor spins backward.
 
 ### Speed inputs (from ESP32 — one per motor)
 
@@ -287,16 +287,37 @@ On the red board, motor wires screw or solder into **two outputs per channel** (
 | Motor A | **AO1** and **AO2** | **A** motor, **out**put screw 1 and 2 |
 | Motor B | **BO1** and **BO2** | **B** motor, **out**put screw 1 and 2 |
 
-**Red vs blue:** On cheap motors the colors are not always “plus and minus.” Pick one wire to **AO1** and one to **AO2**. If the motor spins **backward** later, **swap** the two motor wires on that output only.
+#### Same color rule on every motor (use this project-wide)
 
-**Suggested layout (write this on paper):**
+We use **one rule for all four motors** so you do not have to guess:
 
-| Corner | Red board | Channel | Motor wires |
-|--------|-----------|---------|-------------|
-| Front left (FL) | Board 1 | A (AO1/AO2) | red + blue |
-| Front right (FR) | Board 1 | B (BO1/BO2) | red + blue |
-| Rear left (RL) | Board 2 | A | red + blue |
-| Rear right (RR) | Board 2 | B | red + blue |
+| Motor wire color | Screw on red driver | Same as |
+|------------------|---------------------|---------|
+| **RED** | **1** on that channel → **AO1** (motor A) or **BO1** (motor B) | “Output 1” |
+| **BLUE** | **2** on that channel → **AO2** (motor A) or **BO2** (motor B) | “Output 2” |
+
+Short memory trick: **R**ed → screw **1** (**AO1** / **BO1**). **Blue → 2** (**AO2** / **BO2**).
+
+If **one** motor spins the wrong way when you test (prop would blow air the wrong way), fix **only that motor**: swap **red and blue** on **AO1 ↔ AO2** (or **BO1 ↔ BO2**). Do not change the other three motors unless they are wrong too.
+
+#### Exact connections (copy this to paper)
+
+| Corner | Board | Channel | **RED wire →** | **BLUE wire →** |
+|--------|-------|---------|----------------|-----------------|
+| **Front left (FL)** | 1 | A | **AO1** | **AO2** |
+| **Front right (FR)** | 1 | B | **BO1** | **BO2** |
+| **Rear left (RL)** | 2 | A | **AO1** | **AO2** |
+| **Rear right (RR)** | 2 | B | **BO1** | **BO2** |
+
+**How to wire each motor (repeat four times):**
+
+1. Find the arm labeled **FL**, **FR**, **RL**, or **RR** on your frame.  
+2. Hold the motor so you can see the **red** and **blue** cable coming out of it.  
+3. Screw or clamp **red** into **output 1** (**AO1** or **BO1** from the table).  
+4. Screw or clamp **blue** into **output 2** (**AO2** or **BO2**).  
+5. Tug gently — screws must bite the metal, not squash through insulation only.
+
+If your motor only has **black + red** (no blue), treat **black like blue**: **red → AO1/BO1**, **black → AO2/BO2**.
 
 **Do not** plug motor red/blue wires into the **battery bus bars**. Motor power comes **through the red board** only: battery → **VM** (+) and **GND** (−) on the board → then out to the motor via **AO1/AO2** or **BO1/BO2**.
 
