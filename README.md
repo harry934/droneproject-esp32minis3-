@@ -24,6 +24,7 @@ Static Python check only (`py_compile`). **You must run hardware tests** on your
 | `main.py` | All pin numbers, motors, mixer, main loop |
 | `gyroscope.py` | MPU6050 driver and calibration |
 | `DOCUMENTATION.md` | Short how to run guide |
+| `WIRING_INSTRUCTIONS.md` | Step by step pin and wire connections |
 | `TECHNICAL_REVIEW.md` | Same specification as this README (standalone copy) |
 | `THONNY_SETUP.md` | Flash MicroPython in Thonny |
 
@@ -44,6 +45,46 @@ Upload `main.py` and `gyroscope.py` to the device. Change wiring only in the **p
 | Common ground | GND | | Ground | 0 V |
 
 **Unused on purpose:** D6, D7 (UART/USB), Boot (GPIO0), user LED (GPIO21).
+
+## How to connect the pins
+
+Power **off** USB and battery before wiring. All **GND** wires must meet at the XIAO **GND**. Use **3V3** only for the MPU6050 (never 5 V on the sensor).
+
+### MPU6050
+
+| XIAO | MPU6050 pin |
+|------|-------------|
+| 3V3 | VCC |
+| GND | GND |
+| D4 | SDA |
+| D5 | SCL |
+
+### Throttle potentiometer (3 legs)
+
+| XIAO | Pot leg |
+|------|---------|
+| 3V3 | One outer leg |
+| GND | Other outer leg |
+| D0 | Center leg (wiper) |
+
+If throttle is reversed, swap the two outer legs only.
+
+### Four motors (ESC signal)
+
+Quad viewed from above, front forward:
+
+| Position | XIAO signal pin |
+|----------|-----------------|
+| Front left | D1 |
+| Front right | D2 |
+| Rear left | D3 |
+| Rear right | D8 |
+
+For **each** ESC: **signal** wire to the matching D pin; **ESC GND** to **XIAO GND**. Battery **+** and **−** go to the ESC power inputs only, not to the XIAO.
+
+**Bench test:** Pin → **470 Ω resistor** → LED anode → LED cathode → **GND** (same D pins as above).
+
+**Full checklist, assembly order, and Sense/Plus notes:** [WIRING_INSTRUCTIONS.md](WIRING_INSTRUCTIONS.md).
 
 **Restrictions**
 
