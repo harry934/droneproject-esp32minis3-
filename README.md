@@ -36,7 +36,7 @@ Follow these **phases in order**. Do not skip ahead. If a step fails, **stop** a
 2. **MPU-6050** … the gyro (feels tilt and spin)  
 3. **4 motors** … spin the propellers  
 4. **2 motor controllers** … boards that send power to the motors  
-5. **3 bus bars** … metal strips that split battery power to both controllers  
+5. **3 bus bars** … each has **3 screws**; we use bar **1 = +**, bar **2 = −**, bar **3 = ground hub** (see Step B)  
 6. **Lithium battery** … powers the motors only  
 7. **Capacitor** … small part that smooths battery power (goes on + and − near the controllers)  
 8. **Frame** … holds everything  
@@ -53,7 +53,7 @@ Follow these **phases in order**. Do not skip ahead. If a step fails, **stop** a
 | **3V3** | **3.3 volts**. Safe power for the gyro and the small board. **Not** the big battery. |
 | **Signal wire** | Thin wire that says “how fast” to spin. **Not** the thick battery wire. |
 | **Motor controller** | Box that takes battery power and a signal, then spins a motor. |
-| **Bus bar** | Thick metal rail so one battery wire can feed many places. |
+| **Bus bar** | Metal strip with **3 screws**; each screw is one **input** you bolt a wire onto. Split battery power without many splices. |
 
 ---
 
@@ -185,18 +185,92 @@ If your board does not show D1, D2, etc., use the instruction sheet that came in
 3. Decide which arm is **front left**, **front right**, **rear left**, **rear right**.  
 4. Write it on paper. You will need it later.
 
-### Step B: Battery power (thick wires only)
+### Step B: Three bus bars — which screw gets which wire
 
-**Battery unplugged the whole time while you wire this part.**
+**Battery unplugged** until this whole step is checked twice.
 
-1. Connect battery **minus (−)** to **bus bar 2** (negative bar).  
-2. Connect battery **plus (+)** to **bus bar 1** (positive bar).  
-3. From bar **+**, run thick wire to **power +** on **motor controller 1** and **motor controller 2**.  
-4. From bar **−**, run thick wire to **power −** on **both** controllers.  
-5. Put the **capacitor** across bar **+** and bar **−** close to the controllers.  
-   - Long leg or **+** marked side → positive bar.  
-   - Striped or short leg → negative bar.  
-6. Use **bus bar 3** the way your kit says, or connect extra **ground** wires there so everything shares the same minus.
+Each **bus bar** is a metal strip with **3 screws** (3 connection points). Treat them as **screw 1**, **screw 2**, **screw 3** reading left to right when the strip faces you (or use the labels on your kit if it prints **IN / OUT / OUT**).
+
+**Bar roles in this project**
+
+| Bus bar | Rail | Voltage |
+|---------|------|---------|
+| **Bus bar 1** | **Plus (+)** | Battery positive — **red** wires only (thick) |
+| **Bus bar 2** | **Minus (−)** | Battery negative — **black** wires only (thick) |
+| **Bus bar 3** | **Common ground hub** | Same as minus, but for **thin** grounds (ESP32, gyro, driver logic GND) |
+
+**You must link bar 2 and bar 3:** Run **one short thick or medium black wire** from **any screw on bar 2** to **screw 1 on bar 3**. That way “ground hub” is really the same as battery minus.
+
+---
+
+#### Bus bar 1 — POSITIVE (+) — 3 screws
+
+| Screw | Connect this wire | Goes to |
+|-------|-------------------|---------|
+| **1** | **Thick red** from battery **+** (or XT60 main positive) | **Only** the battery feeds here (one wire in) |
+| **2** | **Thick red** | Red driver **board 1** → **VM** (motor power +) |
+| **3** | **Thick red** | Red driver **board 2** → **VM** (motor power +) |
+
+**Capacitor + leg:** Connect to **screw 2 or 3** on bar 1 (same metal strip as VM). Long leg or side marked **+**.
+
+Do **not** put ESP32, gyro, or motor red/blue wires on bar 1.
+
+---
+
+#### Bus bar 2 — NEGATIVE (−) — 3 screws
+
+| Screw | Connect this wire | Goes to |
+|-------|-------------------|---------|
+| **1** | **Thick black** from battery **−** (main ground) | Battery return (one wire in) |
+| **2** | **Thick black** | Red driver **board 1** → **GND** (motor power minus, big pin) |
+| **3** | **Thick black** | Red driver **board 2** → **GND** (motor power minus, big pin) |
+
+**Capacitor − leg:** Connect to **screw 2 or 3** on bar 2 (striped / short leg to **−** only).
+
+---
+
+#### Bus bar 3 — GROUND HUB (thin wires OK) — 3 screws
+
+After **bar 2 screw 1** (or any bar 2 screw) is tied to **bar 3 screw 1** with a **black** wire:
+
+| Screw | Connect this wire | Goes to |
+|-------|-------------------|---------|
+| **1** | **Black** (medium or thick) | **From bus bar 2** (same minus as battery) — see above |
+| **2** | **Thin black** jumper | ESP32 **GND** |
+| **3** | **Thin black** jumper | Red driver **board 1 GND** (logic) **and** daisy-chain to **board 2 GND** if you only have one screw free |
+
+**MPU-6050 GND:** Do **not** need its own bar screw. Wire **MPU GND → ESP32 GND** (one wire between boards), then ESP32 **GND** → bar 3 screw 2.
+
+If you run out of screw 3 space: tie both drivers’ **GND** pins together with one thin black wire, then **one** wire from that junction to bar 3.
+
+**Never** put battery **+** on bar 2 or bar 3. **Never** put motor red/blue wires on any bus bar.
+
+---
+
+#### Order to tighten (helps avoid mistakes)
+
+1. Mount all **three bars** on the frame (insulated from metal if the frame is conductive).  
+2. Wire **bar 1** screws 1→2→3 (battery +, VM, VM).  
+3. Wire **bar 2** screws 1→2→3 (battery −, GND, GND).  
+4. Install **capacitor** between bar 1 and bar 2.  
+5. Wire **bar 3** (bar 2 → bar 3, then ESP32 GND, then driver grounds).  
+6. **Check** with a multimeter if you have one: bar 1 vs bar 2 = battery voltage; bar 3 vs bar 2 = **0 Ω** (same ground).  
+7. Plug battery **last**, only when Steps C and E are done and props are off.
+
+```
+  BATTERY (+) -----> [Bar1 screw1] [Bar1 screw2]--VM  board1
+                                    [Bar1 screw3]--VM  board2
+                           cap (+) --^
+
+  BATTERY (-) -----> [Bar2 screw1] [Bar2 screw2]--GND board1
+                                    [Bar2 screw3]--GND board2
+                           cap (-) --^
+                                    |
+                    black link      |
+                           [Bar3 screw1] [Bar3 screw2]-- ESP32 GND
+                                         [Bar3 screw3]-- driver GND(s)
+                                         MPU GND -----> ESP32 GND
+```
 
 ### Step C: Motors to the red driver boards (blue + red wire motors)
 
@@ -277,9 +351,9 @@ These are **thin jumper wires**. They tell **how fast** to spin; they do **not**
 
 If a motor spins backward, swap **AIN1 ↔ AIN2** for that channel only, or swap **AO1 ↔ AO2** on the motor wires.
 
-**Bus bar 3:** Use it as an extra **ground** rail if helpful — tie **battery −**, both board **GND** pins, and ESP32 **GND** to the same minus so everything shares one ground.
+**Ground recap:** Motor **GND** (thick) → **bar 2**. ESP32 + gyro + driver logic **GND** (thin) → **bar 3**, with **bar 3 linked to bar 2** (Step B table).
 
-All grounds must meet: battery minus, controller power minus, controller signal minus, ESP32 GND, gyro GND.
+All grounds must meet: battery minus, bar 2, bar 3, driver power GND, driver logic GND, ESP32 GND, gyro GND.
 
 ```
         BIG BATTERY (motors only)
